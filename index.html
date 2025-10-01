@@ -9,7 +9,7 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
-  <!-- Supabase JS (versi stabil & tanpa typo) -->
+  <!-- Supabase JS (TYPO FIXED) -->
   <script crossorigin
           src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/supabase-js.umd.min.js"></script>
 
@@ -28,68 +28,58 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    /* ---------- CONFIG SUPABASE ---------- */
+    /* ---------- CONFIG ---------- */
     const SUPABASE_URL  = "https://ovglutiwvikiafkpadhk.supabase.co";
     const SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92Z2x1dGl3dmlraWFma3BhZGhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMjIwMDAsImV4cCI6MjA3NDg5ODAwMH0.gfP97iJcqsdknuwG03TCNM5P8my3cBksWVx3UXAw_Xo";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const e = React.createElement;
 
-    /* ---------- APP UTAMA ---------- */
+    /* ---------- APP ---------- */
     function App() {
-      const [user, setUser]     = React.useState(null);
-      const [msg, setMsg]       = React.useState("");
-      const [email, setEmail]   = React.useState("");
-      const [pass, setPass]     = React.useState("");
-      const [form, setForm]     = React.useState({nama:"", tgl_lahir:"", tgl_pensiun:""});
+      const [user, setUser]   = React.useState(null);
+      const [msg, setMsg]     = React.useState("");
+      const [email, setEmail] = React.useState("");
+      const [pass, setPass]   = React.useState("");
+      const [form, setForm]   = React.useState({nama:"", tgl_lahir:"", tgl_pensiun:""});
 
-      /* cek session saat pertama load */
       React.useEffect(()=>{
         (async()=>{
           const {data:{session}} = await supabaseClient.auth.getSession();
           setUser(session?.user ?? null);
         })();
-
         const {data:listener} = supabaseClient.auth.onAuthStateChange((_event,session)=>{
           setUser(session?.user ?? null);
         });
         return ()=> listener.subscription.unsubscribe();
       },[]);
 
-      /* ---------- AUTH ---------- */
+      /* ---- AUTH ---- */
       async function handleLogin(){
-        setMsg("");
         const {error} = await supabaseClient.auth.signInWithPassword({email, password:pass});
-        if(error) setMsg("Login gagal: "+error.message);
+        setMsg(error ? "Login gagal: "+error.message : "");
       }
       async function handleSignUp(){
-        setMsg("");
         const {error} = await supabaseClient.auth.signUp({email, password:pass});
-        if(error) setMsg("Error: "+error.message);
-        else      setMsg("Cek email untuk verifikasi akun.");
+        setMsg(error ? "Error: "+error.message : "Cek email untuk verifikasi akun.");
       }
       async function handleLogout(){
         await supabaseClient.auth.signOut();
         setMsg("Berhasil logout.");
       }
 
-      /* ---------- KIRIM PENGAJUAN ---------- */
+      /* ---- SUBMIT ---- */
       async function handleSubmit(ev){
         ev.preventDefault();
-        if(!form.nama || !form.tgl_lahir || !form.tgl_pensiun){
-          setMsg("Mohon lengkapi semua data."); return;
-        }
-        const {error} = await supabaseClient
-          .from("pengajuan_pensiun")
-          .insert({user_id:user.id, ...form, created_at:new Date().toISOString()});
-        if(error) setMsg("Gagal submit: "+error.message);
-        else{
-          setMsg("Pengajuan berhasil dikirim.");
-          setForm({nama:"", tgl_lahir:"", tgl_pensiun:""});
-        }
+        if(!form.nama || !form.tgl_lahir || !form.tgl_pensiun) return setMsg("Lengkapi semua data.");
+        const {error} = await supabaseClient.from("pengajuan_pensiun").insert({
+          user_id:user.id, ...form, created_at:new Date().toISOString()
+        });
+        if(error) setMsg("Gagal: "+error.message);
+        else{ setMsg("Pengajuan berhasil dikirim."); setForm({nama:"",tgl_lahir:"",tgl_pensiun:""}); }
       }
 
-      /* ---------- TAMPILAN ---------- */
+      /* ---- UI ---- */
       if(!user){
         return e("div",null,
           e("h2",null,"Login / Daftar"),
@@ -113,7 +103,6 @@
       );
     }
 
-    /* ---------- RENDER ---------- */
     ReactDOM.createRoot(document.getElementById("root")).render(e(App));
   </script>
 </body>

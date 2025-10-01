@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Pengajuan Usul Pensiun</title>
 
-  <!-- React 18 + ReactDOM -->
+  <!-- React 18 -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
-  <!-- Supabase JS v2 (versi spesifik) -->
-  <script crossorigin src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/supabase-js.umd.min.js"></script>
+  <!-- Supabase JS (versi stabil & tanpa typo) -->
+  <script crossorigin
+          src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/supabase-js.umd.min.js"></script>
 
   <style>
     body{font-family:Arial,Helvetica,sans-serif;padding:20px;max-width:480px;margin:auto;background:#f7f7f7}
@@ -36,36 +37,34 @@
 
     /* ---------- APP UTAMA ---------- */
     function App() {
-      const [user, setUser]       = React.useState(null);
-      const [msg, setMsg]         = React.useState("");
-      const [email, setEmail]     = React.useState("");
-      const [password, setPass]   = React.useState("");
-      const [form, setForm]       = React.useState({nama:"", tgl_lahir:"", tgl_pensiun:""});
+      const [user, setUser]     = React.useState(null);
+      const [msg, setMsg]       = React.useState("");
+      const [email, setEmail]   = React.useState("");
+      const [pass, setPass]     = React.useState("");
+      const [form, setForm]     = React.useState({nama:"", tgl_lahir:"", tgl_pensiun:""});
 
-      /* cek session saat pertama kali load */
+      /* cek session saat pertama load */
       React.useEffect(()=>{
         (async()=>{
           const {data:{session}} = await supabaseClient.auth.getSession();
           setUser(session?.user ?? null);
         })();
 
-        /* listener perubahan auth */
         const {data:listener} = supabaseClient.auth.onAuthStateChange((_event,session)=>{
           setUser(session?.user ?? null);
         });
-
         return ()=> listener.subscription.unsubscribe();
       },[]);
 
-      /* ---------- FUNGSI AUTH ---------- */
+      /* ---------- AUTH ---------- */
       async function handleLogin(){
         setMsg("");
-        const {error} = await supabaseClient.auth.signInWithPassword({email, password});
+        const {error} = await supabaseClient.auth.signInWithPassword({email, password:pass});
         if(error) setMsg("Login gagal: "+error.message);
       }
       async function handleSignUp(){
         setMsg("");
-        const {error} = await supabaseClient.auth.signUp({email, password});
+        const {error} = await supabaseClient.auth.signUp({email, password:pass});
         if(error) setMsg("Error: "+error.message);
         else      setMsg("Cek email untuk verifikasi akun.");
       }
@@ -74,12 +73,11 @@
         setMsg("Berhasil logout.");
       }
 
-      /* ---------- FUNGSI KIRIM PENGAJUAN ---------- */
+      /* ---------- KIRIM PENGAJUAN ---------- */
       async function handleSubmit(ev){
         ev.preventDefault();
         if(!form.nama || !form.tgl_lahir || !form.tgl_pensiun){
-          setMsg("Mohon lengkapi semua data.");
-          return;
+          setMsg("Mohon lengkapi semua data."); return;
         }
         const {error} = await supabaseClient
           .from("pengajuan_pensiun")
@@ -96,7 +94,7 @@
         return e("div",null,
           e("h2",null,"Login / Daftar"),
           e("input",{type:"email",placeholder:"Email",value:email,onChange:ev=>setEmail(ev.target.value)}),
-          e("input",{type:"password",placeholder:"Password",value:password,onChange:ev=>setPass(ev.target.value)}),
+          e("input",{type:"password",placeholder:"Password",value:pass,onChange:ev=>setPass(ev.target.value)}),
           e("button",{onClick:handleLogin},"Login"),
           e("button",{onClick:handleSignUp},"Daftar"),
           e("p",null,msg)
@@ -116,8 +114,7 @@
     }
 
     /* ---------- RENDER ---------- */
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(e(App));
+    ReactDOM.createRoot(document.getElementById("root")).render(e(App));
   </script>
 </body>
 </html>

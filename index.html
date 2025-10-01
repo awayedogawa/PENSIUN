@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pengajuan Usul Pensiun</title>
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/supabase.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; }
+  input, button { margin: 8px 0; padding: 8px; width: 100%; }
+  button { cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/javascript">
+  // Supabase config
+  const SUPABASE_URL = "https://<YOUR_SUPABASE_URL>.supabase.co";
+  const SUPABASE_ANON_KEY = "<YOUR_SUPABASE_ANON_KEY>";
+  const supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const e = React.createElement;
+
+  function App() {
+    const [user, setUser] = React.useState(null);
+    const [form, setForm] = React.useState({ nama: "", tgl_lahir: "", tgl_pensiun: "" });
+    const [message, setMessage] = React.useState("");
+    const [email, setEmail] = React.useState("");
+    const [password, setPassword] = React.useState("");
+
+    React.useEffect(() => {
+      const session = supabase.auth.session();
+      setUser(session?.user || null);
+      supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user || null);
+      });
+    }, []);
+
+    const handleChange = (evt) => {
+      setForm({ ...form, [evt.target.name]: evt.target.value });
+    };
+
+    async function handleSignUp() {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) setMessage("Error: " + error.message);
+      else setMessage("Cek email untuk verifikasi akun.");
+    }
+
+    async function handleLogin() {
+      const { error } = await supabase.auth.signIn({ email, password });
+      if (error) setMessage("Error: " + error.message);
+    }
+
+    async function handleLogout() {
+      await supabase.auth.signOut();
+      setMessage("Berhasil logout.");
+    }
+
+    async function handleSubmit(evt) {
+      evt.preventDefault();
+      if (!form.nama || !form.tgl_lahir || !form.tgl_pensiun) {
+        setMessage("Mohon lengkapi semua data.");
+        return;
+      }
+      const { error } = await supabase.from("pengajuan_pensiun").insert({
+        user_id: user.id,
+        nama: form.nama,
+        tgl_lahir: form.tgl_lahir,
+        tgl_pensiun: form.tgl_pensiun,
+        created_at: new Date(),
+      });
+      if (error) setMessage("Gagal submit: " + error.message);
+      else {
+        setMessage("Pengajuan berhasil dikirim.");
+        setForm({ nama: "", tgl_lahir: "", tgl_pensiun: "" });
+      }
+    }
+
+    if (!user) {
+      return e("div", null, 
+        e("h2", null, "Login / Daftar"),
+        e("input", { type: "email", placeholder: "Email", onChange: (e) => setEmail(e.target.value), value: email }),
+        e("input", { type: "password", placeholder: "Password", onChange: (e) => setPassword(e.target.value), value: password }),
+        e("button", { onClick: handleLogin }, "Login"),
+        e("button", { onClick: handleSignUp }, "Daftar"),
+        e("p", null, message)
+      );
+    }
+
+    return e("div", null,
+      e("h2", null, "Form Pengajuan Usul Pensiun"),
+      e("form", { onSubmit: handleSubmit },
+        e("input", { type: "text", name: "nama", placeholder: "Nama Lengkap", value: form.nama, onChange: handleChange }),
+        e("input", { type: "date", name: "tgl_lahir", value: form.tgl_lahir, onChange: handleChange }),
+        e("input", { type: "date", name: "tgl_pensiun", value: form.tgl_pensiun, onChange: handleChange }),
+        e("button", { type: "submit" }, "Kirim Pengajuan")
+      ),
+      e("button", { onClick: handleLogout }, "Logout"),
+      e("p", null, message)
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(e(App));
+</script>
+</body>
+</html>
